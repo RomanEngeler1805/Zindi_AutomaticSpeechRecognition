@@ -247,11 +247,11 @@ config = wandb.config
 # )
 model = Wav2Vec2ForCTC.from_pretrained(
     "facebook/wav2vec2-large-xlsr-53-french",
-    attention_dropout=hyperparams["dropout"],
-    hidden_dropout=hyperparams["dropout"],
+    attention_dropout=config.dropout,
+    hidden_dropout=config.dropout,
     feat_proj_dropout=0.0,
     mask_time_prob=0.05,
-    layerdrop=hyperparams["dropout"],
+    layerdrop=config.dropout,
     gradient_checkpointing=True, # save GPU memory
     ctc_loss_reduction="mean",
     pad_token_id=processor.tokenizer.pad_token_id, # define pad token
@@ -279,16 +279,16 @@ path_model = path_model = path+'model/wav2vec2-large-xlsr-french_'+now
 training_args = TrainingArguments(
     output_dir=path_model,
     group_by_length=True,
-    per_device_train_batch_size=hyperparams["batch_size"],
+    per_device_train_batch_size=config.batch_size,
     gradient_accumulation_steps=2,
     evaluation_strategy="steps",
-    num_train_epochs=hyperparams["epochs"],
+    num_train_epochs=config.epochs,
     fp16=True,
     save_steps=100,
     eval_steps=100,
     logging_steps=10,
-    learning_rate=hyperparams["learning_rate"],
-    warmup_steps=hyperparams["warmup_steps"],
+    learning_rate=config.learning_rate,
+    warmup_steps=config.warmup_steps,
     save_total_limit=1,
     report_to="wandb"
 )
@@ -313,9 +313,9 @@ def get_double_exp_decay_schedule_with_warmup(
 
 grouped_params = model.parameters()
 from transformers.optimization import AdamW
-optimizer=AdamW(grouped_params, lr=hyperparams["learning_rate"])
-nsteps = hyperparams["epochs"] * math.ceil(nsamples / hyperparams["batch_size"])
-scheduler=get_double_exp_decay_schedule_with_warmup(optimizer, hyperparams["warmup_steps"], nsteps, hyperparams["ncycles"])
+optimizer=AdamW(grouped_params, lr=config.learning_rate)
+nsteps = config.epochs * math.ceil(nsamples / config.batch_size)
+scheduler=get_double_exp_decay_schedule_with_warmup(optimizer, config.warmup_steps, nsteps, config.ncycles)
 optimizers = optimizer, scheduler
 
 ## Trainer
