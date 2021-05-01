@@ -206,7 +206,7 @@ def compute_metrics(pred):
 #     learning_rate = 3e-4,
 #     epochs = 2,
 #     )
-hyperparams = dict(
+default_config = dict(
     dropout=0.1,
     batch_size = 6,
     learning_rate = 3e-4,
@@ -228,7 +228,7 @@ wandb.init(project="ASR_Wolof",
            entity="andrschl",
            name = now,
            group="Wav2Vec2.0_XLSR_large_french",
-           config=hyperparams)
+           config=default_config)
 config = wandb.config
 
 ## model
