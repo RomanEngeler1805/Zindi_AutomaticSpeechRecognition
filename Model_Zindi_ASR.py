@@ -1,4 +1,6 @@
 ## path
+import math
+
 path = '/home/andrschl/Documents/projects/Zindi_AutomaticSpeechRecognition/'
 
 ## google setup
@@ -206,9 +208,11 @@ def compute_metrics(pred):
 #     )
 hyperparams = dict(
     dropout=0.1,
-    batch_size = 16,
+    batch_size = 6,
     learning_rate = 3e-4,
-    epochs = 2,
+    epochs = 30,
+    warmup_steps = 50,
+    ncycles = 6
     )
 
 
@@ -217,6 +221,9 @@ import wandb
 import datetime
 now = datetime.datetime.now()
 now = now.strftime("%d-%m-%Y_%H:%M")
+
+import os
+os.environ["WANDB_WATCH"] = "false"
 wandb.init(project="ASR_Wolof",
            entity="andrschl",
            name = now,
@@ -255,15 +262,15 @@ model.to('cuda')
 model.freeze_feature_extractor()
 
 
-# TESTING: freeze all layers
-
-for name, param in model.named_parameters():
-    # param.requires_grad = False
-    if 'lm_head' not in name:
-        param.requires_grad = False
-
-    if param.requires_grad:
-        print(name)
+# # TESTING: freeze all layers
+#
+# for name, param in model.named_parameters():
+#     # param.requires_grad = False
+#     if 'lm_head' not in name:
+#         param.requires_grad = False
+#
+#     if param.requires_grad:
+#         print(name)
 
 
 ## hyperparameters
@@ -279,12 +286,37 @@ training_args = TrainingArguments(
     fp16=True,
     save_steps=100,
     eval_steps=100,
-    logging_steps=50,
+    logging_steps=10,
     learning_rate=hyperparams["learning_rate"],
-    warmup_steps=20,
+    warmup_steps=hyperparams["warmup_steps"],
     save_total_limit=1,
     report_to="wandb"
 )
+
+## lr schedule
+from torch.optim.lr_scheduler import LambdaLR
+def get_double_exp_decay_schedule_with_warmup(
+    optimizer, num_warmup_steps: int, num_training_steps: int, num_cycles: float = 0.5, last_epoch: int = -1,
+        loc_decay:float =0.05, glob_decay: float = 0.05
+):
+    def lr_lambda(current_step):
+        if current_step < num_warmup_steps:
+            return float(current_step) / float(max(1, num_warmup_steps))
+        num_decay_steps = num_training_steps - num_warmup_steps
+        step = current_step - num_warmup_steps
+        period = math.ceil(float(num_decay_steps)/float(num_cycles))
+        loc_exp = math.exp(math.log(loc_decay) * (step % (period+1)) / float(period))
+        glob_exp = math.exp(math.log(glob_decay) * step / float(num_decay_steps))
+        return loc_exp * glob_exp
+
+    return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+grouped_params = model.parameters()
+from transformers.optimization import AdamW
+optimizer=AdamW(grouped_params, lr=hyperparams["learning_rate"])
+nsteps = hyperparams["epochs"] * math.ceil(nsamples / hyperparams["batch_size"])
+scheduler=get_double_exp_decay_schedule_with_warmup(optimizer, hyperparams["warmup_steps"], nsteps, hyperparams["ncycles"])
+optimizers = optimizer, scheduler
 
 ## Trainer
 from transformers import Trainer
@@ -296,6 +328,7 @@ trainer = Trainer(
     train_dataset=data_train,
     eval_dataset=data_valid,
     tokenizer=processor.feature_extractor,
+    optimizers=optimizers
 )
 
 ## start training
