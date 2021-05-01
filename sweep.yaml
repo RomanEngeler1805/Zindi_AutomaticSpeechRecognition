@@ -1,7 +1,7 @@
 program: Model_Zindi_ASR.py
 method: bayes
 metric:
-  name: eval_wer
+  name: eval/wer
   goal: minimize
 parameters:
   dropout:
@@ -10,3 +10,6 @@ parameters:
   learning_rate:
     min: 1e-3
     max: 1e-5
+  mask_time_prob:
+    min: 0.01
+    max: 0.1

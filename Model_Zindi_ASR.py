@@ -208,11 +208,12 @@ def compute_metrics(pred):
 #     )
 default_config = dict(
     dropout=0.1,
-    batch_size = 6,
+    batch_size = 10,
     learning_rate = 3e-4,
-    epochs = 30,
+    epochs = 15,
     warmup_steps = 50,
-    ncycles = 6
+    # ncycles = 6,
+    mask_time_prob=0.05,
     )
 
 
@@ -250,7 +251,7 @@ model = Wav2Vec2ForCTC.from_pretrained(
     attention_dropout=config.dropout,
     hidden_dropout=config.dropout,
     feat_proj_dropout=0.0,
-    mask_time_prob=0.05,
+    mask_time_prob=config.mask_time_prob,
     layerdrop=config.dropout,
     gradient_checkpointing=True, # save GPU memory
     ctc_loss_reduction="mean",
@@ -293,30 +294,30 @@ training_args = TrainingArguments(
     report_to="wandb"
 )
 
-## lr schedule
-from torch.optim.lr_scheduler import LambdaLR
-def get_double_exp_decay_schedule_with_warmup(
-    optimizer, num_warmup_steps: int, num_training_steps: int, num_cycles: float = 0.5, last_epoch: int = -1,
-        loc_decay:float =0.05, glob_decay: float = 0.05
-):
-    def lr_lambda(current_step):
-        if current_step < num_warmup_steps:
-            return float(current_step) / float(max(1, num_warmup_steps))
-        num_decay_steps = num_training_steps - num_warmup_steps
-        step = current_step - num_warmup_steps
-        period = math.ceil(float(num_decay_steps)/float(num_cycles))
-        loc_exp = math.exp(math.log(loc_decay) * (step % (period+1)) / float(period))
-        glob_exp = math.exp(math.log(glob_decay) * step / float(num_decay_steps))
-        return loc_exp * glob_exp
-
-    return LambdaLR(optimizer, lr_lambda, last_epoch)
-
-grouped_params = model.parameters()
-from transformers.optimization import AdamW
-optimizer=AdamW(grouped_params, lr=config.learning_rate)
-nsteps = config.epochs * math.ceil(nsamples / config.batch_size)
-scheduler=get_double_exp_decay_schedule_with_warmup(optimizer, config.warmup_steps, nsteps, config.ncycles)
-optimizers = optimizer, scheduler
+# ## lr schedule
+# from torch.optim.lr_scheduler import LambdaLR
+# def get_double_exp_decay_schedule_with_warmup(
+#     optimizer, num_warmup_steps: int, num_training_steps: int, num_cycles: float = 0.5, last_epoch: int = -1,
+#         loc_decay:float =0.05, glob_decay: float = 0.05
+# ):
+#     def lr_lambda(current_step):
+#         if current_step < num_warmup_steps:
+#             return float(current_step) / float(max(1, num_warmup_steps))
+#         num_decay_steps = num_training_steps - num_warmup_steps
+#         step = current_step - num_warmup_steps
+#         period = math.ceil(float(num_decay_steps)/float(num_cycles))
+#         loc_exp = math.exp(math.log(loc_decay) * (step % (period+1)) / float(period))
+#         glob_exp = math.exp(math.log(glob_decay) * step / float(num_decay_steps))
+#         return loc_exp * glob_exp
+#
+#     return LambdaLR(optimizer, lr_lambda, last_epoch)
+#
+# grouped_params = model.parameters()
+# from transformers.optimization import AdamW
+# optimizer=AdamW(grouped_params, lr=config.learning_rate)
+# nsteps = config.epochs * math.ceil(nsamples / config.batch_size)
+# scheduler=get_double_exp_decay_schedule_with_warmup(optimizer, config.warmup_steps, nsteps, config.ncycles)
+# optimizers = optimizer, scheduler
 
 ## Trainer
 from transformers import Trainer
@@ -328,7 +329,7 @@ trainer = Trainer(
     train_dataset=data_train,
     eval_dataset=data_valid,
     tokenizer=processor.feature_extractor,
-    optimizers=optimizers
+    # optimizers=optimizers
 )
 
 ## start training
