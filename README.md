@@ -1,5 +1,5 @@
 # Zindi_AutomaticSpeechRecognition
-Participation in the automatic speech recognition challenge of Zindi https://zindi.africa/competitions/ai4d-baamtu-datamation-automatic-speech-recognition-in-wolof
+Participation in the automatic speech recognition challenge of Zindi <br> https://zindi.africa/competitions/ai4d-baamtu-datamation-automatic-speech-recognition-in-wolof
 <br/><br/>
 
 ## Files <br/>
