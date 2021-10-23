@@ -1,7 +1,5 @@
 # Zindi_AutomaticSpeechRecognition
-Participation in the
-
-[Automatic Speech Recognition challenge of Zindi ](https://zindi.africa/competitions/ai4d-baamtu-datamation-automatic-speech-recognition-in-wolof)
+Participation in the [Automatic Speech Recognition challenge of Zindi ](https://zindi.africa/competitions/ai4d-baamtu-datamation-automatic-speech-recognition-in-wolof)
 <br/>
 For more explanation about the pipeline, checkout the correpsonding [Medium post](https://engeler-roman.medium.com/automatic-speech-recognition-pipeline-ffb3a808f8ff)
 <br/><br/>
